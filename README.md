@@ -33,85 +33,110 @@ Program dengan argumen seperti contoh di atas akan menjalankan script test.sh se
 
 ### Jawaban :
 
+#### Bagian 1
 ```
-#include<stdlib.h>
-#include<sys/stat.h>
-#include<sys/types.h>
-#include<unistd.h>
-#include<wait.h>
-#include<stdio.h>
-#include<string.h>
-#include<fcntl.h>
-#include<errno.h>
-#include<syslog.h>
-
-int main(int argc,char *argv[]){
-    
-    printf("%d\n",argc);
-
     if(argc<5){
         printf("Argumen Kurang\n");
         return 0;
     }
-    if((atoi(argv[1])>0 &&atoi(argv[1])<61) || strcmp(argv[1],"*")==0){
+
+    if((atoi(argv[1])>=0 &&atoi(argv[1])<60) || strcmp(argv[1],"*")==0){
         puts(argv[1]);
     }
     else{
         puts("EROR ARGUMEN 1 BRO");
+        return 0;
     }
-    if((atoi(argv[2])>0 &&atoi(argv[2])<61) || strcmp(argv[2],"*")==0){
-        puts(argv[1]);
+
+    if((atoi(argv[2])>=0 &&atoi(argv[2])<60) || strcmp(argv[2],"*")==0){
+        puts(argv[2]);
     }
     else{
         puts("EROR ARGUMEN 2 BRO");
+        return 0;
     }
-    if((atoi(argv[3])>0 &&atoi(argv[3])<61) || strcmp(argv[3],"*")==0){
+
+    if((atoi(argv[3])>=0 &&atoi(argv[3])<60) || strcmp(argv[3],"*")==0){
         puts(argv[3]);
     }
     else{
         puts("EROR ARGUMEN 3 BRO");
+        return 0;
     }
+    // puts(argv[4]);
+    if(access(argv[4],F_OK)==-1){
+        puts("FILENYA GAADA!!\n");
+        return 0;
+    }
+```
 
-    pid_t pid;
-    pid=fork();
+#### Bagian 2 
+```
+    pid_t pid, sid;        // Variabel untuk menyimpan PID
 
-    if(pid<0){
+    pid = fork();     // Menyimpan PID dari Child Process
+
+    /* Keluar saat fork gagal
+    * (nilai variabel pid < 0) */
+    if (pid < 0) {
         exit(EXIT_FAILURE);
     }
-    if(pid>0){
+
+    /* Keluar saat fork berhasil
+    * (nilai variabel pid adalah PID dari child process) */
+    if (pid > 0) {
         exit(EXIT_SUCCESS);
     }
+
     umask(0);
 
     sid = setsid();
-    if(sid<0){
+    if (sid < 0) {
         exit(EXIT_FAILURE);
     }
 
-    if((chdir("/"))<0){
+    if ((chdir("/home/salim/modul2")) < 0) {
         exit(EXIT_FAILURE);
     }
 
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
+```
 
-    while(1){
-        if(strcpy(argv[1],*)){
-            
-        }
-        
+#### Bagian 3
+```
+    time_t rawtime=time(NULL);
+    struct tm *timeinfo=localtime(&rawtime);
+    int sec=timeinfo->tm_sec;
+    int min=timeinfo->tm_min;
+    int hour=timeinfo->tm_hour;
+
+    if(sec==atoi(argv[1])||strcmp(argv[1],"*")==0){
+        sec=100;
     }
-
-    // puts(argv[4]);
-    char *args[] = {"bash",argv[4],NULL};
-    execv("/bin/bash",args);
-}
+    if(min==atoi(argv[2])||strcmp(argv[2],"*")==0){
+        min=100;
+    }
+    if(hour==atoi(argv[3])||strcmp(argv[3],"*")==0){
+        hour=100;
+    }
+    if(sec==100&&min==100&&hour==100){
+        if(fork()==0){
+            char *args[] = {"bash",argv[4],NULL};
+            execv("/bin/bash",args);
+        }   
+    }
+    sleep(1);
 ```
 
 ### Penjelasan :
 
-Program ini sudah bisa menerima argumen dan mengeluarkan error jika argumen yang dimasukkan tidak sesuai
+Bagian 1 -> Bagian ini digunakan untuk memvalidasi argumen yang diberikan apabila ada ketidak sesuaian akan mengeluarkan pesan error dan program berhenti
+
+Bagian 2 -> Bagian ini digunakan untuk menjadikan program yang kita jalankan menjadi daemon/berjalan pada latar belakang
+
+Bagian 3 -> Bagian ini digunakan untuk menjalankan konfigurasi cron yang diberikan oleh input, menggunakan perbandingan string apabila inputan berupa * dan membandingkan nilai waktu sekarang dengan inputan argumen, jika hasil perbandingan semua bernilai benar maka jalankan file bash pada argumen terakhir
 
 ## Soal 2
 Shisoppu mantappu! itulah yang selalu dikatakan Kiwa setiap hari karena sekarang dia merasa sudah jago materi sisop. Karena merasa jago, suatu hari Kiwa iseng membuat sebuah program.
@@ -169,53 +194,117 @@ Catatan :
 
 ### Jawaban
 
+#### Bagian 1
 ```
-#include<stdlib.h>
-#include<sys/types.h>
-#include<unistd.h>
-#include<wait.h>
-#include<stdio.h>
-
-int main(){
-    
-    //Membuat 2 directory baru
-    pid_t child_id1;
-    int status;
-    child_id1=fork();
-
-    if(child_id1<0){
-        exit(EXIT_FAILURE);
-    }
-
-    if(child_id1==0){
-        char *args[]= {"copy","-r","/home/salim/newfolder","indomie",NULL};
+    if(fork()==0){
+        char *args[]= {"copy","-r","/home/salim/newfolder","/home/salim/modul2",NULL};
         execv("/bin/cp",args);
+    }
+    while((wait(&status))>0);
+
+    if(fork()==0){
+            char *args[]= {"rename","newfolder","indomie",NULL};
+            execv("/bin/mv",args);
+    }
+    while((wait(&status))>0);
+
+    sleep(5);
+    if(fork()==0){
+        char *args[]= {"copy","-r","/home/salim/newfolder","/home/salim/modul2",NULL};
+        execv("/bin/cp",args);
+    }
+    while((wait(&status))>0);
+
+    if(fork()==0){
+        char *args[]= {"rename","newfolder","sedaap",NULL};
+        execv("/bin/mv",args);        
+    }
+    while((wait(&status))>0);
+```
+
+#### Bagian 2
+```
+    if(fork()==0){
+        char *args[]= {"unzip","jpg.zip",NULL};
+        execv("/usr/bin/unzip",args);
+    }
+    while((wait(&status))>0);
+```
+
+#### Bagian 3 
+```
+    struct dirent *drnt;
+    DIR *dir = opendir("/home/salim/modul2/jpg");
+    if(dir){
+            while(drnt = readdir(dir))
+            {
+                -- BAGIAN 4 --
+            }
+            closedir(dir);
+    }
+```
+
+#### Bagian 4
+```
+    struct stat sb;
+
+    char args2[50]="/home/salim/modul2/jpg/";
+    strcat(args2,drnt->d_name);
+
+    if(stat(args2, &sb)==0 &&S_ISDIR(sb.st_mode)){
+        --- BAGIAN 5 a ---
     }
     else{
-        while((waitpid(child_id1,&status,0))>0);
-        sleep(5);
-        char *args[]= {"copy","-r","/home/salim/newfolder","sedaap",NULL};
-        execv("/bin/cp",args);
-        //extract zip
-        char *args2[]= {"unzip","jpg.zip",NULL};
-        execv("/usr/bin/unzip",args2);
-
-        child_id1=fork();
-        if(child_id1<0){
-            exit(EXIT_FAILURE);
-        }
-        if(child_id1==0){
-
-        }
-        else{
-            
-        }
+        --- BAGIAN 5 b ---
     }
-    
-    return 0;
-}
+```
+
+#### Bagian 5 a
+```
+    if(fork()==0){
+        char *args[]= {"move",args2,"/home/salim/modul2/indomie",NULL};
+        execv("/bin/mv",args);
+    }
+    while((wait(&status))>0);
+    char args3[50];
+    strcpy(args3,"/home/salim/modul2/indomie/");
+    strcat(args3,drnt->d_name);
+    strcat(args3,"/coba1.txt");
+    if(fork()==0){
+        char *args[]= {"touch",args3,NULL};
+        execv("/bin/touch",args);
+    }
+    while((wait(&status))>0);
+
+    strcpy(args3,"/home/salim/modul2/indomie/");
+    strcat(args3,drnt->d_name);
+    strcat(args3,"/coba2.txt");
+    sleep(3);
+    if(fork()==0){
+        char *args[]= {"touch",args3,NULL};
+        execv("/bin/touch",args);
+    }
+    while((wait(&status))>0);
+```
+
+#### Bagian 5 b
+```
+    if(fork()==0){
+        char *args[]= {"move",args2,"/home/salim/modul2/sedaap",NULL};
+        execv("/bin/mv",args);
+    }
+    while((wait(&status))>0);
 ```
 ### Penjelasan
 
-Program ini sudah bisa menyelesaikan permasalahan ke 1 dan 2
+Bagian 1 -> Bagian ini membuat 2 folder pada path /home/(u_name)/modul2 yaitu indomie dan sedaap
 
+Bagian 2 -> Bagian ini mengunzip file jpg.zip
+
+Bagian 3 -> Bagian ini melakukan iterasi didalam directory jpg yang sebelumnya telah di ekstrak
+
+Bagian 4 -> Bagian ini melakukan pengecekan apakah iterasi yang sedang dilakukan merupakan file atau directory
+
+Bagian 5 a -> Bagian ini dieksekusi ketika iterasi yang dilakukan merupakan directory, yaitu memindahkannya ke indomie serta membuat 2 file (coba1.txt,coba2.txt) didalam directory tersebut dengan sela 3 detik
+
+Bagian 5 b -> Bagian ini dieksekusi ketika itereasi yang dilakukan merupakan file, yaitu memindahkannya ke sedaap
